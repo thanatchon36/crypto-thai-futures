@@ -506,4 +506,5 @@ const manualDict = {
     "Paris Saint-Germain Fan Token": "เปแอสเช แฟน โทเคน", "PSG": "เปแอสเช แฟน โทเคน",
     "Arsenal Fan Token": "อาร์เซนอล แฟน โทเคน", "AFC": "อาร์เซนอล แฟน โทเคน",
     "Chiliz": "ชิลลิส", "CHZ": "ชิลลิส",
+    "NEAR Protocol": "เนียร์ โปรโตคอล", "NEAR": "เนียร์ โปรโตคอล",
 };
