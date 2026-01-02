@@ -505,4 +505,5 @@ const manualDict = {
     "FC Barcelona Fan Token": "บาร์เซโลน่า แฟน โทเคน", "BAR": "บาร์เซโลน่า แฟน โทเคน",
     "Paris Saint-Germain Fan Token": "เปแอสเช แฟน โทเคน", "PSG": "เปแอสเช แฟน โทเคน",
     "Arsenal Fan Token": "อาร์เซนอล แฟน โทเคน", "AFC": "อาร์เซนอล แฟน โทเคน",
+    "Chiliz": "ชิลลิส", "CHZ": "ชิลลิส",
 };
