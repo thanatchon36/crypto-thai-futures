@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Futures Volatility (Fix Stable)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; padding: 20px; }
+        .container { max-width: 1200px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .symbol-badge { background-color: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-left: 5px; }
+        .text-green { color: #198754; font-weight: bold; }
+        .text-red { color: #dc3545; font-weight: bold; }
+        .coin-name-th { font-size: 1.1em; font-weight: bold; color: #000; }
+        .coin-name-en { font-size: 0.85em; color: #6c757d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>🚀 20 เหรียญ Futures ผันผวน (ชื่อไทย)</h2>
+        <button onclick="fetchData()" class="btn btn-primary">🔄 รีเฟรชข้อมูล</button>
+    </div>
+    
+    <div id="loading" class="text-center my-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <br><span id="statusText">กำลังโหลดข้อมูล...</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered d-none" id="cryptoTable">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width: 30%;">ชื่อเหรียญ (TH/EN)</th>
+                    <th>ราคา (USD)</th>
+                    <th>1 ชม. %</th>
+                    <th>24 ชม. %</th>
+                    <th>7 วัน %</th>
+                    <th>มูลค่าตลาด (USD)</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // --- ตั้งค่า API KEY ตรงนี้ ---
+    const GOOGLE_API_KEY = "AIzaSyAnjH33eZERDbzQWDQ_I_sQHF-S8Fnfnxc";
+
+    // --- Dictionary แปลภาษาเอง ---
+    // เคล็ดลับ: ใส่ทั้งชื่อเต็ม และ ตัวย่อ (Symbol) เพื่อความชัวร์
+    const manualDict = {
+        // ดักจับชื่อเหรียญ (Name)
+        "Stable": "สเตเบิล",
+        "Bitcoin": "บิตคอยน์",
+        "Ethereum": "อีเธอเรียม",
+        "Tether": "เทเธอร์",
+        "BNB": "บีเอ็นบี",
+        "Solana": "โซลาน่า",
+        "XRP": "เอ็กซ์อาร์พี",
+        "Dogecoin": "โดจคอยน์",
+        "Cardano": "คาร์ดาโน่",
+        "Pepe": "เปเป้",
+        "Chiliz": "ชิลลิซ",
+        "Pippin": "พิพพิน",
+        
+        // ดักจับด้วยตัวย่อ (Symbol) กรณีชื่อมาไม่ตรง
+        "STABLE": "สเตเบิล", 
+        "BTC": "บิตคอยน์",
+        "ETH": "อีเธอเรียม",
+        "SOL": "โซลาน่า",
+        "CHZ": "ชิลลิซ",
+        "PIPPIN": "พิพพิน"
+    };
+
+    const fmt = (num) => num ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+    const fmtPct = (num) => {
+        if (num === null || num === undefined) return '-';
+        return `<span class="${num >= 0 ? 'text-green' : 'text-red'}">${num.toFixed(2)}%</span>`;
+    };
+
+    // ฟังก์ชันช่วยค้นหาคำแปล (ฉลาดขึ้น: ตัดช่องว่าง + เช็ค case-insensitive + เช็ค Symbol)
+    function getThaiName(name, symbol) {
+        const cleanName = name ? name.trim() : "";
+        const cleanSymbol = symbol ? symbol.toUpperCase().trim() : "";
+
+        // 1. เช็คจากชื่อเป๊ะๆ หรือ ชื่อพิมพ์เล็ก/ใหญ่
+        if (manualDict[cleanName]) return manualDict[cleanName];
+        
+        // 2. เช็คจาก Symbol (ตัวช่วยสำคัญสำหรับเหรียญ Stable)
+        if (manualDict[cleanSymbol]) return manualDict[cleanSymbol];
+
+        return null; // ถ้าไม่เจอเลย ส่งค่า null กลับไป (เพื่อให้ไปเรียก AI หรือใช้ชื่อเดิม)
+    }
+
+    async function translateWithGemini(coinNames) {
+        // กรองเฉพาะชื่อที่หาใน manualDict ไม่เจอ
+        const namesToTranslate = coinNames.filter(name => !getThaiName(name, "")); // ส่ง symbol เป็นว่าง เพราะตอนส่งกลุ่มให้ AI เรายังไม่จับคู่ symbol
+
+        if (namesToTranslate.length === 0) return {};
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
+        const prompt = `
+        Translate these Cryptocurrency names into Thai (Thai script only).
+        Return valid JSON: {"EnglishName": "ThaiName"}.
+        List: ${namesToTranslate.join(", ")}
+        `;
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { response_mime_type: "application/json" }
+                })
+            });
+            const data = await response.json();
+            if (data.candidates && data.candidates[0].content) {
+                return JSON.parse(data.candidates[0].content.parts[0].text);
+            }
+        } catch (error) {
+            console.error("AI Error:", error);
+        }
+        return {};
+    }
+
+    async function fetchData() {
+        const loadingDiv = document.getElementById('loading');
+        const statusText = document.getElementById('statusText');
+        const table = document.getElementById('cryptoTable');
+        const tbody = document.getElementById('tableBody');
+
+        loadingDiv.style.display = 'block';
+        table.classList.add('d-none');
+        tbody.innerHTML = '';
+        
+        try {
+            statusText.innerText = "1/3 ดึงข้อมูล Binance Futures...";
+            const binanceRes = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
+            const binanceData = await binanceRes.json();
+            const futuresSymbols = new Set(binanceData.symbols.filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT').map(s => s.baseAsset.toUpperCase()));
+
+            statusText.innerText = "2/3 ดึงราคาจาก CoinGecko...";
+            const cgRes = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=1h,24h,7d');
+            const cgData = await cgRes.json();
+
+            let filteredData = cgData.filter(coin => futuresSymbols.has(coin.symbol.toUpperCase()));
+            filteredData.forEach(coin => coin.abs_7d = Math.abs(coin.price_change_percentage_7d_in_currency || 0));
+            filteredData.sort((a, b) => b.abs_7d - a.abs_7d);
+            const top20 = filteredData.slice(0, 20);
+
+            statusText.innerText = "3/3 แปลภาษาไทย (Manual + AI)...";
+            const coinNames = top20.map(c => c.name);
+            const aiTranslatedMap = await translateWithGemini(coinNames);
+
+            top20.forEach(coin => {
+                // ลำดับการเลือกชื่อ:
+                // 1. จาก Manual Dict (เช็คทั้งชื่อ และ Symbol "STABLE")
+                // 2. จาก AI
+                // 3. ถ้าไม่มี ใช้ชื่อภาษาอังกฤษเดิม
+                const thaiName = getThaiName(coin.name, coin.symbol) || 
+                                 aiTranslatedMap[coin.name] || 
+                                 coin.name;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-start align-middle">
+                        <div class="d-flex align-items-center">
+                            <img src="${coin.image}" width="24" height="24" class="me-2 rounded-circle" alt="">
+                            <div>
+                                <div class="coin-name-th">${thaiName}</div>
+                                <div class="coin-name-en">
+                                    ${coin.name} 
+                                    <span class="symbol-badge">${coin.symbol.toUpperCase()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-end align-middle">${fmt(coin.current_price)}</td>
+                    <td class="text-end align-middle">${fmtPct(coin.price_change_percentage_1h_in_currency)}</td>
+                    <td class="text-end align-middle">${fmtPct(coin.price_change_percentage_24h_in_currency)}</td>
+                    <td class="text-end align-middle">${fmtPct(coin.price_change_percentage_7d_in_currency)}</td>
+                    <td class="text-end align-middle">${fmt(coin.market_cap)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            loadingDiv.style.display = 'none';
+            table.classList.remove('d-none');
+
+        } catch (error) {
+            console.error(error);
+            loadingDiv.innerHTML = `<span class="text-danger">เกิดข้อผิดพลาด: ${error.message}</span>`;
+        }
+    }
+
+    fetchData();
+</script>
+
+</body>
+</html>
