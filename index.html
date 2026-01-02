@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Futures Volatility (Fix Stable)</title>
+    <title>Crypto Futures Volatility (Top 100)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
     
@@ -21,7 +21,8 @@
 
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>🚀 20 เหรียญ Futures ผันผวน (ชื่อไทย)</h2>
+        <!-- แก้ไขจุดที่ 1: เปลี่ยนหัวข้อเป็น 100 -->
+        <h2>🚀 100 เหรียญ Futures ผันผวน (ชื่อไทย)</h2>
         <button onclick="fetchData()" class="btn btn-primary">🔄 รีเฟรชข้อมูล</button>
     </div>
     
@@ -51,10 +52,7 @@
     // --- ตั้งค่า API KEY ตรงนี้ ---
     const GOOGLE_API_KEY = "AIzaSyAnjH33eZERDbzQWDQ_I_sQHF-S8Fnfnxc";
 
-    // --- Dictionary แปลภาษาเอง ---
-    // เคล็ดลับ: ใส่ทั้งชื่อเต็ม และ ตัวย่อ (Symbol) เพื่อความชัวร์
     const manualDict = {
-        // ดักจับชื่อเหรียญ (Name)
         "Stable": "สเตเบิล",
         "Bitcoin": "บิตคอยน์",
         "Ethereum": "อีเธอเรียม",
@@ -67,8 +65,6 @@
         "Pepe": "เปเป้",
         "Chiliz": "ชิลลิซ",
         "Pippin": "พิพพิน",
-        
-        // ดักจับด้วยตัวย่อ (Symbol) กรณีชื่อมาไม่ตรง
         "STABLE": "สเตเบิล", 
         "BTC": "บิตคอยน์",
         "ETH": "อีเธอเรียม",
@@ -83,24 +79,18 @@
         return `<span class="${num >= 0 ? 'text-green' : 'text-red'}">${num.toFixed(2)}%</span>`;
     };
 
-    // ฟังก์ชันช่วยค้นหาคำแปล (ฉลาดขึ้น: ตัดช่องว่าง + เช็ค case-insensitive + เช็ค Symbol)
     function getThaiName(name, symbol) {
         const cleanName = name ? name.trim() : "";
         const cleanSymbol = symbol ? symbol.toUpperCase().trim() : "";
-
-        // 1. เช็คจากชื่อเป๊ะๆ หรือ ชื่อพิมพ์เล็ก/ใหญ่
         if (manualDict[cleanName]) return manualDict[cleanName];
-        
-        // 2. เช็คจาก Symbol (ตัวช่วยสำคัญสำหรับเหรียญ Stable)
         if (manualDict[cleanSymbol]) return manualDict[cleanSymbol];
-
-        return null; // ถ้าไม่เจอเลย ส่งค่า null กลับไป (เพื่อให้ไปเรียก AI หรือใช้ชื่อเดิม)
+        return null;
     }
 
     async function translateWithGemini(coinNames) {
-        // กรองเฉพาะชื่อที่หาใน manualDict ไม่เจอ
-        const namesToTranslate = coinNames.filter(name => !getThaiName(name, "")); // ส่ง symbol เป็นว่าง เพราะตอนส่งกลุ่มให้ AI เรายังไม่จับคู่ symbol
-
+        const namesToTranslate = coinNames.filter(name => !getThaiName(name, "")); 
+        
+        // ถ้าไม่มีอะไรต้องแปล ก็คืนค่าว่างกลับไปเลย
         if (namesToTranslate.length === 0) return {};
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
@@ -146,23 +136,23 @@
             const futuresSymbols = new Set(binanceData.symbols.filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT').map(s => s.baseAsset.toUpperCase()));
 
             statusText.innerText = "2/3 ดึงราคาจาก CoinGecko...";
+            // CoinGecko API เรียกมา 250 ตัวอยู่แล้ว (per_page=250) ดังนั้นข้อมูลพอสำหรับ 100 ตัวแน่นอน
             const cgRes = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=1h,24h,7d');
             const cgData = await cgRes.json();
 
             let filteredData = cgData.filter(coin => futuresSymbols.has(coin.symbol.toUpperCase()));
             filteredData.forEach(coin => coin.abs_7d = Math.abs(coin.price_change_percentage_7d_in_currency || 0));
             filteredData.sort((a, b) => b.abs_7d - a.abs_7d);
-            const top20 = filteredData.slice(0, 20);
+            
+            // แก้ไขจุดที่ 2: เปลี่ยน slice จาก 20 เป็น 100
+            const top100 = filteredData.slice(0, 100);
 
             statusText.innerText = "3/3 แปลภาษาไทย (Manual + AI)...";
-            const coinNames = top20.map(c => c.name);
+            // ส่งรายชื่อ 100 ตัวไปแปล (AI อาจจะใช้เวลาประมวลผลนานขึ้นนิดหน่อย)
+            const coinNames = top100.map(c => c.name);
             const aiTranslatedMap = await translateWithGemini(coinNames);
 
-            top20.forEach(coin => {
-                // ลำดับการเลือกชื่อ:
-                // 1. จาก Manual Dict (เช็คทั้งชื่อ และ Symbol "STABLE")
-                // 2. จาก AI
-                // 3. ถ้าไม่มี ใช้ชื่อภาษาอังกฤษเดิม
+            top100.forEach(coin => {
                 const thaiName = getThaiName(coin.name, coin.symbol) || 
                                  aiTranslatedMap[coin.name] || 
                                  coin.name;
