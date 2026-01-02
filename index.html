@@ -50,27 +50,113 @@
 
 <script>
     // --- ตั้งค่า API KEY ตรงนี้ ---
-    const GOOGLE_API_KEY = "AIzaSyAnjH33eZERDbzQWDQ_I_sQHF-S8Fnfnxc";
+    const GOOGLE_API_KEY = "AIzaSyCC8ZSfTOhTBJySY5MZlawgb-bHjYZn1NU";
 
     const manualDict = {
-        "Stable": "สเตเบิล",
-        "Bitcoin": "บิตคอยน์",
-        "Ethereum": "อีเธอเรียม",
-        "Tether": "เทเธอร์",
+        // --- ของเดิม ---
+        "Bitcoin": "บิตคอยน์", "BTC": "บิตคอยน์",
+        "Ethereum": "อีเธอเรียม", "ETH": "อีเธอเรียม",
+        "Tether": "เทเธอร์", "USDT": "เทเธอร์",
         "BNB": "บีเอ็นบี",
-        "Solana": "โซลาน่า",
+        "Solana": "โซลาน่า", "SOL": "โซลาน่า", "Wrapped SOL": "โซลาน่า",
         "XRP": "เอ็กซ์อาร์พี",
-        "Dogecoin": "โดจคอยน์",
-        "Cardano": "คาร์ดาโน่",
-        "Pepe": "เปเป้",
-        "Chiliz": "ชิลลิซ",
-        "Pippin": "พิพพิน",
-        "STABLE": "สเตเบิล", 
-        "BTC": "บิตคอยน์",
-        "ETH": "อีเธอเรียม",
-        "SOL": "โซลาน่า",
-        "CHZ": "ชิลลิซ",
-        "PIPPIN": "พิพพิน"
+        "Dogecoin": "โดจคอยน์", "DOGE": "โดจคอยน์",
+        "Cardano": "คาร์ดาโน่", "ADA": "คาร์ดาโน่",
+        "Pepe": "เปเป้", "PEPE": "เปเป้",
+        "River": "ริเวอร์", "RIVER": "ริเวอร์",
+        "Canton": "แคนตัน", "CC": "แคนตัน",
+        "Story": "สตอรี่", "IP": "สตอรี่",
+        "Merlin Chain": "เมอร์ลิน เชน", "MERL": "เมอร์ลิน เชน",
+        "Plasma": "พลาสมา", "XPL": "พลาสมา",
+        "Stable": "สเตเบิล", "STABLE": "สเตเบิล",
+        "Chiliz": "ชิลลิซ", "CHZ": "ชิลลิซ",
+        "pippin": "พิพพิน", "Pippin": "พิพพิน", "PIPPIN": "พิพพิน",
+        "Pump.fun": "ปั๊ม.ฟัน", "PUMP": "ปั๊ม.ฟัน",
+        "Zcash": "ซีแคช", "ZEC": "ซีแคช",
+        "Filecoin": "ไฟล์คอยน์", "FIL": "ไฟล์คอยน์",
+        "Monad": "โมนาด", "MON": "โมนาด",
+        "MemeCore": "มีมคอร์", "M": "มีมคอร์",
+        "Polkadot": "โพลกาดอต", "DOT": "โพลกาดอต",
+        "Pendle": "เพนเดิล", "PENDLE": "เพนเดิล",
+        "Midnight": "มิดไนท์", "NIGHT": "มิดไนท์",
+        "Render": "เรนเดอร์", "RENDER": "เรนเดอร์",
+        "Optimism": "ออปติมิซึม", "OP": "ออปติมิซึม",
+        "Tezos": "เทซอส", "XTZ": "เทซอส",
+        "Toncoin": "ทอนคอยน์", "TON": "ทอนคอยน์",
+        "MYX Finance": "MYX ไฟแนนซ์", "MYX": "MYX ไฟแนนซ์",
+        "Humanity": "ฮิวแมนนิตี้", "H": "ฮิวแมนนิตี้",
+        "Sky": "สกาย", "SKY": "สกาย",
+        "Sonic": "โซนิค", "S": "โซนิค",
+        "Aptos": "แอปทอส", "APT": "แอปทอส",
+        "Dash": "แดช", "DASH": "แดช",
+        "Lido DAO": "ลิโด DAO", "LDO": "ลิโด DAO",
+        "Ether.fi": "อีเธอร์.ไฟ", "ETHFI": "อีเธอร์.ไฟ",
+        "Trust Wallet": "ทรัสต์ วอลเล็ต", "TWT": "ทรัสต์ วอลเล็ต",
+        "PancakeSwap": "แพนเค้กสวอป", "CAKE": "แพนเค้กสวอป",
+        "Celestia": "เซเลสเทีย", "TIA": "เซเลสเทีย",
+        "Avalanche": "อะวาแลนซ์", "AVAX": "อะวาแลนซ์",
+        "Arweave": "อาร์วีฟ", "AR": "อาร์วีฟ",
+        "ZKsync": "ซีเคซิงค์", "ZK": "ซีเคซิงค์",
+        "Decentraland": "ดีเซ็นทรัลแลนด์", "MANA": "ดีเซ็นทรัลแลนด์",
+        "Bittensor": "บิตเทนเซอร์", "TAO": "บิตเทนเซอร์",
+        "Morpho": "มอร์โฟ", "MORPHO": "มอร์โฟ",
+        "NEAR Protocol": "เนียร์ โปรโตคอล", "NEAR": "เนียร์ โปรโตคอล",
+        "Pudgy Penguins": "พัดจี้ เพนกวินส์", "PENGU": "พัดจี้ เพนกวินส์",
+        "Monero": "โมเนโร", "XMR": "โมเนโร",
+        "Ethena": "อีเธอนา", "ENA": "อีเธอนา",
+        "Maple Finance": "เมเปิล ไฟแนนซ์", "SYRUP": "เมเปิล ไฟแนนซ์",
+        "SPX6900": "SPX6900", "SPX": "SPX6900",
+        "Sui": "ซุย", "SUI": "ซุย",
+        "dogwifhat": "ด็อกวิฟแฮท", "WIF": "ด็อกวิฟแฮท",
+        "Worldcoin": "เวิลด์คอยน์", "WLD": "เวิลด์คอยน์",
+        "Vaulta": "วอลต้า", "A": "วอลต้า",
+        "Sei": "เซย์", "SEI": "เซย์",
+        "World Liberty Financial": "เวิลด์ ลิเบอร์ตี้ ไฟแนนซ์", "WLFI": "เวิลด์ ลิเบอร์ตี้ ไฟแนนซ์",
+        "LayerZero": "เลเยอร์ซีโร่", "ZRO": "เลเยอร์ซีโร่",
+        "Quant": "ควอนต์", "QNT": "ควอนต์",
+        "Theta Network": "ธีต้า เน็ตเวิร์ก", "THETA": "ธีต้า เน็ตเวิร์ก",
+        "Arbitrum": "อาร์บิทรัม", "ARB": "อาร์บิทรัม",
+        "Stacks": "สแต็กส์", "STX": "สแต็กส์",
+        "Bitcoin SV": "บิตคอยน์ SV", "BSV": "บิตคอยน์ SV",
+        "JUST": "จัสท์", "JST": "จัสท์",
+        "Chainlink": "เชนลิงก์", "LINK": "เชนลิงก์",
+        "VeChain": "วีเชน", "VET": "วีเชน",
+        "Aster": "แอสเตอร์", "ASTER": "แอสเตอร์",
+        "Hedera": "เฮเดรา", "HBAR": "เฮเดรา",
+        "Fartcoin": "ฟาร์ทคอยน์", "FARTCOIN": "ฟาร์ทคอยน์",
+        "Compound": "คอมปาวด์", "COMP": "คอมปาวด์",
+        "PAX Gold": "แพกซ์ โกลด์", "PAXG": "แพกซ์ โกลด์",
+        "Ondo": "ออนโด", "ONDO": "ออนโด",
+        "Kaspa": "คาสปา", "KAS": "คาสปา",
+        "Conflux": "คอนฟลักซ์", "CFX": "คอนฟลักซ์",
+        "Artificial Superintelligence Alliance": "อาร์ติฟิเชียล ซูเปอร์อินเทลลิเจนซ์ อัลไลแอนซ์", "FET": "อาร์ติฟิเชียล ซูเปอร์อินเทลลิเจนซ์ อัลไลแอนซ์",
+        "Stellar": "สเตลลาร์", "XLM": "สเตลลาร์",
+        "Uniswap": "ยูนิสวอป", "UNI": "ยูนิสวอป",
+        "Cosmos Hub": "คอสมอส ฮับ", "ATOM": "คอสมอส ฮับ",
+        "Ethereum Name Service": "อีเธอร์เรียม เนม เซอร์วิส", "ENS": "อีเธอร์เรียม เนม เซอร์วิส",
+        "DoubleZero": "ดับเบิลซีโร่", "2Z": "ดับเบิลซีโร่",
+        "The Sandbox": "เดอะ แซนด์บ็อกซ์", "SAND": "เดอะ แซนด์บ็อกซ์",
+        "Litecoin": "ไลท์คอยน์", "LTC": "ไลท์คอยน์",
+        "Algorand": "แอลกอแรนด์", "ALGO": "แอลกอแรนด์",
+        "Binance-Peg Dogecoin": "ไบแนนซ์-เพก โดชคอยน์",
+        "Starknet": "สตาร์คเน็ต", "STRK": "สตาร์คเน็ต",
+        "IOTA": "ไอโอทีเอ",
+        "Aerodrome Finance": "แอโรโดรม ไฟแนนซ์", "AERO": "แอโรโดรม ไฟแนนซ์",
+        "TRON": "ทรอน", "TRX": "ทรอน",
+        "POL (ex-MATIC)": "POL (เอ็กซ์-มาติก)", "POL": "POL (เอ็กซ์-มาติก)",
+        "Bitcoin Cash": "บิตคอยน์ แคช", "BCH": "บิตคอยน์ แคช",
+        "Injective": "อินเจคทีฟ", "INJ": "อินเจคทีฟ",
+        "GALA": "กาล่า",
+        "Ethereum Classic": "อีเธอร์เรียม คลาสสิก", "ETC": "อีเธอร์เรียม คลาสสิก",
+        "Basic Attention": "เบสิก แอทเทนชัน", "BAT": "เบสิก แอทเทนชัน",
+        "Pyth Network": "ไพธ เน็ตเวิร์ก", "PYTH": "ไพธ เน็ตเวิร์ก",
+        "The Graph": "เดอะ กราฟ", "GRT": "เดอะ กราฟ",
+        "NEO": "นีโอ",
+        "Aave": "อาเว่", "AAVE": "อาเว่",
+        "Hyperliquid": "ไฮเปอร์ลิควิด", "HYPE": "ไฮเปอร์ลิควิด",
+        "Official Trump": "ออฟฟิเชียล ทรัมป์", "TRUMP": "ออฟฟิเชียล ทรัมป์",
+        "Virtuals Protocol": "เวอร์ชวลส์ โปรโตคอล", "VIRTUAL": "เวอร์ชวลส์ โปรโตคอล",
+        "JasmyCoin": "แจสมี่คอยน์", "JASMY": "แจสมี่คอยน์"
     };
 
     const fmt = (num) => num ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
@@ -82,16 +168,16 @@
     function getThaiName(name, symbol) {
         const cleanName = name ? name.trim() : "";
         const cleanSymbol = symbol ? symbol.toUpperCase().trim() : "";
+        // เช็คชื่อเต็ม
         if (manualDict[cleanName]) return manualDict[cleanName];
+        // เช็คตัวย่อ (สำคัญมาก เพราะบางทีชื่อไม่มี แต่ตัวย่อมีใน dict)
         if (manualDict[cleanSymbol]) return manualDict[cleanSymbol];
         return null;
     }
 
-    async function translateWithGemini(coinNames) {
-        const namesToTranslate = coinNames.filter(name => !getThaiName(name, "")); 
-        
-        // ถ้าไม่มีอะไรต้องแปล ก็คืนค่าว่างกลับไปเลย
-        if (namesToTranslate.length === 0) return {};
+    async function translateWithGemini(namesToTranslate) {
+        // ถ้าไม่มีอะไรต้องแปล (เพราะกรองมาแล้วจาก fetchData) ก็คืนค่าว่างเลย
+        if (!namesToTranslate || namesToTranslate.length === 0) return {};
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
         const prompt = `
@@ -136,7 +222,6 @@
             const futuresSymbols = new Set(binanceData.symbols.filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT').map(s => s.baseAsset.toUpperCase()));
 
             statusText.innerText = "2/3 ดึงราคาจาก CoinGecko...";
-            // CoinGecko API เรียกมา 250 ตัวอยู่แล้ว (per_page=250) ดังนั้นข้อมูลพอสำหรับ 100 ตัวแน่นอน
             const cgRes = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=1h,24h,7d');
             const cgData = await cgRes.json();
 
@@ -144,15 +229,32 @@
             filteredData.forEach(coin => coin.abs_7d = Math.abs(coin.price_change_percentage_7d_in_currency || 0));
             filteredData.sort((a, b) => b.abs_7d - a.abs_7d);
             
-            // แก้ไขจุดที่ 2: เปลี่ยน slice จาก 20 เป็น 100
             const top100 = filteredData.slice(0, 100);
 
             statusText.innerText = "3/3 แปลภาษาไทย (Manual + AI)...";
-            // ส่งรายชื่อ 100 ตัวไปแปล (AI อาจจะใช้เวลาประมวลผลนานขึ้นนิดหน่อย)
-            const coinNames = top100.map(c => c.name);
-            const aiTranslatedMap = await translateWithGemini(coinNames);
+            
+            // --- LOGIC ใหม่: กรองก่อนส่ง AI ---
+            // เช็คว่า getThaiName (ทั้งชื่อและ Symbol) คืนค่าเป็น null หรือไม่
+            // ถ้าคืนค่า (มีใน dict) -> ไม่ต้องส่ง
+            // ถ้าไม่คืนค่า (ไม่มีใน dict) -> ส่งชื่อไปแปล
+            const namesToTranslate = top100
+                .filter(coin => !getThaiName(coin.name, coin.symbol))
+                .map(coin => coin.name);
+
+            // ส่งเฉพาะรายการที่ไม่มีใน dict จริงๆ ไปให้ AI
+            let aiTranslatedMap = {};
+            if (namesToTranslate.length > 0) {
+                console.log(`Sending ${namesToTranslate.length} names to AI...`); // ไว้ดู log ว่าประหยัดไปเท่าไหร่
+                aiTranslatedMap = await translateWithGemini(namesToTranslate);
+            } else {
+                console.log("All names found in Manual Dictionary. No AI needed.");
+            }
 
             top100.forEach(coin => {
+                // ลำดับการเลือกชื่อ:
+                // 1. Manual Dict (ผ่าน getThaiName ซึ่งดูทั้งชื่อและ Symbol)
+                // 2. AI Result (ถ้าไม่มีใน manual)
+                // 3. ชื่ออังกฤษเดิม
                 const thaiName = getThaiName(coin.name, coin.symbol) || 
                                  aiTranslatedMap[coin.name] || 
                                  coin.name;
