@@ -4,17 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Futures Volatility (Top 100)</title>
+    
+    <!-- 1. Preconnect: เชื่อมต่อ Server ล่วงหน้าเพื่อความไว -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://api.coingecko.com">
+    <link rel="preconnect" href="https://fapi.binance.com">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; padding: 20px; }
-        .container { max-width: 1200px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .symbol-badge { background-color: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-left: 5px; }
-        .text-green { color: #198754; font-weight: bold; }
-        .text-red { color: #dc3545; font-weight: bold; }
-        .coin-name-th { font-size: 1.1em; font-weight: bold; color: #000; }
-        .coin-name-en { font-size: 0.85em; color: #6c757d; }
+        /* CSS Optimization: Minify แบบง่ายๆ */
+        body{font-family:'Sarabun',sans-serif;background-color:#f4f6f9;padding:20px}
+        .container{max-width:1200px;background:#fff;padding:25px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1)}
+        .symbol-badge{background-color:#e9ecef;color:#495057;padding:2px 6px;border-radius:4px;font-size:.85em;font-weight:700;margin-left:5px}
+        .text-green{color:#198754;font-weight:700}
+        .text-red{color:#dc3545;font-weight:700}
+        .coin-name-th{font-size:1.1em;font-weight:700;color:#000}
+        .coin-name-en{font-size:.85em;color:#6c757d}
+        /* Skeleton Loading Animation */
+        .skeleton {background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite;}
+        @keyframes loading {0% {background-position: 200% 0;} 100% {background-position: -200% 0;}}
     </style>
 </head>
 <body>
@@ -22,14 +34,18 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2>🚀 100 เหรียญ Futures ผันผวน (ชื่อไทย)</h2>
-        <button onclick="fetchData()" class="btn btn-primary">🔄 รีเฟรชข้อมูล</button>
+        <div>
+            <span id="lastUpdate" class="text-muted small me-2"></span>
+            <button onclick="fetchData()" class="btn btn-primary" id="refreshBtn">🔄 รีเฟรชข้อมูล</button>
+        </div>
     </div>
     
     <div id="alertBox" class="alert alert-danger d-none" role="alert"></div>
 
+    <!-- Loading State แบบสวยงามกว่า Spinner -->
     <div id="loading" class="text-center my-4">
         <div class="spinner-border text-primary" role="status"></div>
-        <br><span id="statusText">กำลังโหลดข้อมูล...</span>
+        <div id="statusText" class="mt-2 text-primary fw-bold">กำลังเตรียมข้อมูล...</div>
     </div>
 
     <div class="table-responsive">
@@ -49,39 +65,49 @@
     </div>
 </div>
 
-<!-- ============================================== -->
-<!-- 1. เรียกใช้ไฟล์ config.js ที่เราแยกออกมา -->
-<!-- ============================================== -->
 <script src="config.js"></script> 
 
-<!-- 2. สคริปต์หลัก (Logic) ไม่ต้องมีตัวแปร data แล้ว -->
 <script>
-    // ตัวแปร GOOGLE_API_KEY และ manualDict จะถูกโหลดมาจาก config.js โดยอัตโนมัติ
-
+    // --- Performance Utilities ---
+    const CACHE_KEY_DICT = 'crypto_thai_dict_v1';
+    
+    // Helper Format
     const fmt = (num) => num ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
     const fmtPct = (num) => {
         if (num === null || num === undefined) return '-';
         return `<span class="${num >= 0 ? 'text-green' : 'text-red'}">${num.toFixed(2)}%</span>`;
     };
 
+    // Load Cached Dictionary (โหลดครั้งเดียวตอนเปิดเว็บ)
+    let localDict = {};
+    try {
+        const saved = localStorage.getItem(CACHE_KEY_DICT);
+        if (saved) localDict = JSON.parse(saved);
+    } catch(e) { console.error("Cache Error", e); }
+
     function getThaiName(name, symbol) {
-        const cleanName = name ? name.trim() : "";
-        const cleanSymbol = symbol ? symbol.toUpperCase().trim() : "";
-        if (manualDict[cleanName]) return manualDict[cleanName];
-        if (manualDict[cleanSymbol]) return manualDict[cleanSymbol];
+        // 1. Check Manual Config
+        if (typeof manualDict !== 'undefined') {
+            if (manualDict[name]) return manualDict[name];
+            if (manualDict[symbol]) return manualDict[symbol];
+        }
+        // 2. Check LocalStorage Cache
+        if (localDict[name]) return localDict[name];
         return null;
     }
 
-    async function translateWithGemini(namesToTranslate) {
-        if (!namesToTranslate || namesToTranslate.length === 0) return {};
+    async function translateWithGeminiBatch(names) {
+        if (!names.length) return {};
+        
+        // ถ้าไม่มี API Key ให้คืนค่าว่างทันที (จะได้ไม่ Error)
+        if (typeof GOOGLE_API_KEY === 'undefined' || !GOOGLE_API_KEY) {
+            console.warn("No Gemini API Key found.");
+            return {};
+        }
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
-        const prompt = `
-        Translate these Cryptocurrency names into Thai (Thai script only).
-        Return purely valid JSON: {"EnglishName": "ThaiName"}.
-        Do not add Markdown formatting (like \`\`\`json).
-        List: ${namesToTranslate.join(", ")}
-        `;
+        // Prompt แบบสั้นกระชับเพื่อประหยัด Token และเวลา
+        const prompt = `Translate to Thai (JSON format {"EnglishName":"ThaiName"}): ${names.join(", ")}`;
 
         try {
             const response = await fetch(url, {
@@ -93,17 +119,12 @@
                 })
             });
             
-            if (!response.ok) throw new Error(`Gemini API Error: ${response.status}`);
-            
             const data = await response.json();
-            if (data.candidates && data.candidates[0].content) {
-                const text = data.candidates[0].content.parts[0].text;
-                const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
-                return JSON.parse(cleanText);
+            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                return JSON.parse(data.candidates[0].content.parts[0].text);
             }
         } catch (error) {
             console.error("AI Translation Failed:", error);
-            return {};
         }
         return {};
     }
@@ -114,55 +135,69 @@
         const table = document.getElementById('cryptoTable');
         const tbody = document.getElementById('tableBody');
         const alertBox = document.getElementById('alertBox');
+        const refreshBtn = document.getElementById('refreshBtn');
 
+        // UI Reset
+        refreshBtn.disabled = true;
         loadingDiv.style.display = 'block';
         table.classList.add('d-none');
         alertBox.classList.add('d-none');
         tbody.innerHTML = '';
-        
-        try {
-            statusText.innerText = "1/3 ดึงข้อมูล Binance Futures...";
-            const binanceRes = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
-            if (!binanceRes.ok) throw new Error("ไม่สามารถดึงข้อมูล Binance ได้ (อาจติด CORS)");
-            const binanceData = await binanceRes.json();
-            const futuresSymbols = new Set(binanceData.symbols.filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT').map(s => s.baseAsset.toUpperCase()));
+        statusText.innerText = "⚡ กำลังดึงข้อมูลตลาด (Parallel Fetch)...";
 
-            statusText.innerText = "2/3 ดึงราคาจาก CoinGecko...";
-            const cgRes = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=1h,24h,7d');
-            if (!cgRes.ok) {
-                if(cgRes.status === 429) throw new Error("CoinGecko Rate Limit (รอสักครู่แล้วลองใหม่)");
-                throw new Error("ไม่สามารถดึงข้อมูล CoinGecko ได้");
-            }
-            const cgData = await cgRes.json();
+        try {
+            // --- Optimization 1: Parallel Fetching ---
+            // ยิงไป Binance และ CoinGecko พร้อมกัน ไม่ต้องรอต่อคิว
+            const [binanceData, cgData] = await Promise.all([
+                fetch('https://fapi.binance.com/fapi/v1/exchangeInfo').then(r => r.json()),
+                fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=1h,24h,7d').then(r => r.json())
+            ]);
+
+            // Process Data
+            const futuresSymbols = new Set(
+                binanceData.symbols
+                    .filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT')
+                    .map(s => s.baseAsset.toUpperCase())
+            );
 
             let filteredData = cgData.filter(coin => futuresSymbols.has(coin.symbol.toUpperCase()));
+            
+            // คำนวณความผันผวน (Sort Logic)
             filteredData.forEach(coin => coin.abs_7d = Math.abs(coin.price_change_percentage_7d_in_currency || 0));
             filteredData.sort((a, b) => b.abs_7d - a.abs_7d);
             
             const top100 = filteredData.slice(0, 100);
 
-            statusText.innerText = "3/3 แปลภาษาไทย (Manual + AI)...";
+            // --- Optimization 2: Smart Translation ---
+            statusText.innerText = "🤖 ตรวจสอบชื่อไทย...";
             
+            // หาเฉพาะคำที่ยังไม่มีใน Cache และ Manual Dict
             const namesToTranslate = top100
-                .filter(coin => !getThaiName(coin.name, coin.symbol))
-                .map(coin => coin.name);
+                .map(c => c.name)
+                .filter(name => !getThaiName(name, "")); // ส่ง Symbol ว่างไปก่อนเพื่อเช็คแค่ชื่อ
 
-            let aiTranslatedMap = {};
             if (namesToTranslate.length > 0) {
-                console.log(`Sending ${namesToTranslate.length} names to AI...`);
-                aiTranslatedMap = await translateWithGemini(namesToTranslate);
+                statusText.innerText = `🧠 ให้ AI แปลชื่อใหม่ ${namesToTranslate.length} เหรียญ...`;
+                const newTranslations = await translateWithGeminiBatch(namesToTranslate);
+                
+                // Save to Cache (Update LocalStorage)
+                if (Object.keys(newTranslations).length > 0) {
+                    localDict = { ...localDict, ...newTranslations };
+                    localStorage.setItem(CACHE_KEY_DICT, JSON.stringify(localDict));
+                }
             }
 
+            // --- Optimization 3: DOM Fragment (Render ทีเดียว) ---
+            const fragment = document.createDocumentFragment();
+            
             top100.forEach(coin => {
-                const thaiName = getThaiName(coin.name, coin.symbol) || 
-                                 aiTranslatedMap[coin.name] || 
-                                 coin.name;
-
+                const thaiName = getThaiName(coin.name, coin.symbol) || coin.name;
+                
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="text-start align-middle">
                         <div class="d-flex align-items-center">
-                            <img src="${coin.image}" width="24" height="24" class="me-2 rounded-circle" alt="">
+                            <img src="${coin.image}" width="24" height="24" class="me-2 rounded-circle" loading="lazy" alt="">
                             <div>
                                 <div class="coin-name-th">${thaiName}</div>
                                 <div class="coin-name-en">
@@ -178,9 +213,13 @@
                     <td class="text-end align-middle">${fmtPct(coin.price_change_percentage_7d_in_currency)}</td>
                     <td class="text-end align-middle">${fmt(coin.market_cap)}</td>
                 `;
-                tbody.appendChild(tr);
+                fragment.appendChild(tr);
             });
 
+            tbody.appendChild(fragment); // Insert into DOM once
+            
+            // Update UI
+            document.getElementById('lastUpdate').innerText = `อัปเดต: ${new Date().toLocaleTimeString('th-TH')}`;
             loadingDiv.style.display = 'none';
             table.classList.remove('d-none');
 
@@ -188,10 +227,13 @@
             console.error(error);
             loadingDiv.style.display = 'none';
             alertBox.classList.remove('d-none');
-            alertBox.innerText = `เกิดข้อผิดพลาด: ${error.message}`;
+            alertBox.innerHTML = `<strong>เกิดข้อผิดพลาด:</strong> ${error.message} <br><small>หากติด Rate Limit กรุณารอสักครู่แล้วกดรีเฟรชใหม่</small>`;
+        } finally {
+            refreshBtn.disabled = false;
         }
     }
 
+    // Auto load on start
     fetchData();
 </script>
 
