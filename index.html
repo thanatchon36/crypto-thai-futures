@@ -40,7 +40,7 @@
 
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h2>🚀 100 เหรียญ Futures ผันผวน + กราฟ 7 วัน</h2>
+        <h2>🚀 100 เหรียญสัญญาซื้อขายล่วงหน้า ผันผวนสูง | กราฟย้อนหลัง 7 วัน</h2>
         <div>
             <span id="lastUpdate" class="text-muted small me-2"></span>
             <button onclick="fetchData()" class="btn btn-primary" id="refreshBtn">🔄 รีเฟรชข้อมูล</button>
@@ -59,8 +59,8 @@
         <table class="table table-striped table-hover table-bordered d-none" id="cryptoTable">
             <thead class="table-dark text-center">
                 <tr>
-                    <th style="width: 25%;">ชื่อเหรียญ (TH/EN)</th>
-                    <th>ราคา (USD)</th>
+                    <th style="width: 25%;">ชื่อเหรียญ</th>
+                    <th>ราคา (ดอลลาร์)</th>
                     <th>1 ชม. %</th>
                     <th>24 ชม. %</th>
                     <th>7 วัน %</th>
@@ -79,7 +79,7 @@
     const CACHE_KEY_DICT = 'crypto_thai_dict_v2';
 
     // Helper: Format Number
-    const fmt = (num) => num ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+    const fmt = (num) => num ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '-';
     
     // Helper: Percent Color
     const fmtPct = (num) => {
@@ -95,13 +95,11 @@
         const max = Math.max(...data);
         const range = max - min;
         
-        // กำหนดสี: ถ้าปิดสูงกว่าเปิด = เขียว, ต่ำกว่า = แดง
         const isUp = data[data.length - 1] >= data[0];
         const color = isUp ? '#198754' : '#dc3545'; 
 
-        // คำนวณเส้น Path (SVG Path Command)
         const stepX = width / (data.length - 1);
-        const stepY = range === 0 ? 1 : (height - 6) / range; // -6 เพื่อเว้นขอบบนล่าง
+        const stepY = range === 0 ? 1 : (height - 6) / range;
 
         let pathD = `M 0 ${height - ((data[0] - min) * stepY) - 3}`;
         
@@ -127,21 +125,16 @@
         if (saved) localDict = JSON.parse(saved);
     } catch(e) { console.error("Cache Error", e); }
 
-    // ฟังก์ชันดึงชื่อไทย (รองรับ config.js)
     function getThaiName(name, symbol) {
-        // เช็คจาก manualDict ใน config.js ก่อน
         if (typeof manualDict !== 'undefined') {
             if (manualDict[name]) return manualDict[name];
             if (manualDict[symbol]) return manualDict[symbol];
         }
-        // เช็คจาก Cache
         if (localDict[name]) return localDict[name];
         return null;
     }
 
-    // AI Translation Function
     async function translateWithGeminiBatch(names) {
-        // ตรวจสอบ GOOGLE_API_KEY จาก config.js
         if (typeof GOOGLE_API_KEY === 'undefined' || !GOOGLE_API_KEY) {
             console.warn("ไม่พบ GOOGLE_API_KEY ใน config.js");
             return {};
@@ -149,7 +142,7 @@
         
         if (!names.length) return {};
         
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
         const prompt = `Translate to Thai (JSON format {"EnglishName":"ThaiName"}): ${names.join(", ")}`;
 
         try {
@@ -188,19 +181,31 @@
         statusText.innerText = "⚡ กำลังดึงข้อมูล + กราฟราคา (Parallel Fetch)...";
 
         try {
-            // 1. Fetch Binance & CoinGecko (เพิ่ม sparkline=true)
+            // 1. Fetch Data
             const [binanceData, cgData] = await Promise.all([
                 fetch('https://fapi.binance.com/fapi/v1/exchangeInfo').then(r => r.json()),
                 fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=true&price_change_percentage=1h,24h,7d').then(r => r.json())
             ]);
 
-            // 2. Filter Futures Symbols
-            const futuresSymbols = new Set(
-                binanceData.symbols
-                    .filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT')
-                    .map(s => s.baseAsset.toUpperCase())
-            );
+            // 2. Filter Futures Symbols (รองรับ 1000PEPE, 1000000MOG)
+            const futuresSymbols = new Set();
+            
+            binanceData.symbols.forEach(s => {
+                if (s.status === 'TRADING' && s.quoteAsset === 'USDT') {
+                    const base = s.baseAsset.toUpperCase(); 
+                    // เก็บชื่อเต็ม (เช่น BTC, 1000PEPE)
+                    futuresSymbols.add(base);
 
+                    // เก็บชื่อที่ตัดตัวเลขหน้าออก (เช่น 1000PEPE -> PEPE, 1000000MOG -> MOG)
+                    // ใช้ Regex /^\d+/ เพื่อหาตัวเลขที่อยู่หน้าสุดแล้วลบออก
+                    const cleanBase = base.replace(/^\d+/, ''); 
+                    if (cleanBase !== base && cleanBase.length > 0) {
+                        futuresSymbols.add(cleanBase);
+                    }
+                }
+            });
+
+            // กรอง CoinGecko Data ด้วยรายชื่อที่เตรียมไว้
             let filteredData = cgData.filter(coin => futuresSymbols.has(coin.symbol.toUpperCase()));
             
             // 3. Sort by Volatility (7D)
@@ -229,8 +234,6 @@
             
             top100.forEach(coin => {
                 const thaiName = getThaiName(coin.name, coin.symbol) || coin.name;
-                
-                // สร้างกราฟ SVG จากข้อมูล sparkline
                 const graphHtml = createSparkline(coin.sparkline_in_7d?.price);
 
                 const tr = document.createElement('tr');
